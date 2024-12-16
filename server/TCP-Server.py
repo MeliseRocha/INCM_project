@@ -3,6 +3,8 @@ import socketserver
 import json
 
 class SensorDataHandler(http.server.BaseHTTPRequestHandler):
+    data_store = []
+
     def do_POST(self):
         # Log the request path
         print(f"Received POST request on {self.path}")
@@ -21,6 +23,7 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             
             if bpm is not None and spo2 is not None:
                 print(f"Received Data - BPM: {bpm}, SpO2: {spo2}")
+                self.data_store.append(data)
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(b"Data received successfully")
@@ -39,6 +42,21 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b"Internal server error")
+
+    def do_GET(self):
+        # Log the request path
+        print(f"Received GET request on {self.path}")
+        
+        if self.path == '/sensor-data':
+            # Return the stored data as JSON
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(self.data_store).encode())
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not Found")
 
     def log_message(self, format, *args):
         return  # Suppress default logging to keep output clean
