@@ -1,23 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
-const SensorChart = () => {
-  const [chartData, setChartData] = useState({
-    labels: [],
-    datasets: [
-      {
-        label: 'Saturation',
-        data: [],
-        borderColor: 'rgba(75,192,192,1)',
-        backgroundColor: 'rgba(75,192,192,0.2)',
-      },
-    ],
-  });
+const initialState = {
+  labels: [],
+  datasets: [
+    {
+      label: 'Saturation',
+      data: [],
+      borderColor: 'rgba(75,192,192,1)',
+      backgroundColor: 'rgba(75,192,192,0.2)',
+    },
+  ],
+};
 
+const chartReducer = (state, action) => {
+  switch (action.type) {
+    case 'UPDATE_CHART':
+      return {
+        ...state,
+        labels: action.payload.labels,
+        datasets: [
+          {
+            ...state.datasets[0],
+            data: action.payload.data,
+          },
+        ],
+      };
+    default:
+      return state;
+  }
+};
+
+const SensorChart = () => {
+  const [chartData, dispatch] = useReducer(chartReducer, initialState);
   const [avgSaturation, setAvgSaturation] = useState(0);
   const [visibleRange, setVisibleRange] = useState([0, 10]);
   const [isSliderAtEnd, setIsSliderAtEnd] = useState(true);
@@ -29,54 +48,58 @@ const SensorChart = () => {
   });
 
   useEffect(() => {
-    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000; // 1 second, 1 minute, or 1 hour
-    const interval = setInterval(() => {
-      const now = new Date();
-      const time = timeUnit === 'seconds'
-        ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
-        : timeUnit === 'minutes'
-        ? `${now.getHours()}:${now.getMinutes()}`
-        : `${now.getHours()}`;
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/sensor-data'); // Adjust the URL as needed
+        const data = await response.json();
+        const now = new Date();
+        const time = timeUnit === 'seconds'
+          ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
+          : timeUnit === 'minutes'
+          ? `${now.getHours()}:${now.getMinutes()}`
+          : `${now.getHours()}`;
 
-      const saturation = Math.floor(Math.random() * 100); // Simulate saturation data
+        setAllData(prevData => {
+          const newLabels = [...prevData[timeUnit].labels, time];
+          const newData = [...prevData[timeUnit].data, data[data.length - 1].SpO2]; // Get the latest SpO2 value
 
-      setAllData(prevData => {
-        const newLabels = [...prevData[timeUnit].labels, time];
-        const newData = [...prevData[timeUnit].data, saturation];
+          const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
+          const avgSaturation = totalSaturation / newData.length;
 
-        const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
-        const avgSaturation = totalSaturation / newData.length;
+          setAvgSaturation(avgSaturation.toFixed(2));
 
-        setAvgSaturation(avgSaturation.toFixed(2));
+          const newVisibleRange = isSliderAtEnd
+            ? [Math.max(0, newLabels.length - 10), newLabels.length]
+            : visibleRange;
 
-        const newVisibleRange = isSliderAtEnd
-          ? [Math.max(0, newLabels.length - 10), newLabels.length]
-          : visibleRange;
+          setVisibleRange(newVisibleRange);
 
-        setVisibleRange(newVisibleRange);
-
-        setChartData({
-          labels: newLabels,
-          datasets: [
-            {
-              ...chartData.datasets[0],
+          dispatch({
+            type: 'UPDATE_CHART',
+            payload: {
+              labels: newLabels,
               data: newData,
             },
-          ],
-        });
+          });
 
-        return {
-          ...prevData,
-          [timeUnit]: {
-            labels: newLabels,
-            data: newData,
-          },
-        };
-      });
-    }, intervalDuration);
+          return {
+            ...prevData,
+            [timeUnit]: {
+              labels: newLabels,
+              data: newData,
+            },
+          };
+        });
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000; // 1 second, 1 minute, or 1 hour
+    const interval = setInterval(fetchData, intervalDuration);
 
     return () => clearInterval(interval);
-  }, [isSliderAtEnd, visibleRange, timeUnit]);
+  }, [isSliderAtEnd, visibleRange, timeUnit, chartData.datasets]);
 
   const handleSliderChange = (event) => {
     const value = parseInt(event.target.value, 10);
@@ -87,16 +110,12 @@ const SensorChart = () => {
   const handleTimeUnitChange = (event) => {
     const newTimeUnit = event.target.value;
     setTimeUnit(newTimeUnit);
-    setChartData({
-      labels: allData[newTimeUnit].labels,
-      datasets: [
-        {
-          label: 'Saturation',
-          data: allData[newTimeUnit].data,
-          borderColor: 'rgba(75,192,192,1)',
-          backgroundColor: 'rgba(75,192,192,0.2)',
-        },
-      ],
+    dispatch({
+      type: 'UPDATE_CHART',
+      payload: {
+        labels: allData[newTimeUnit].labels,
+        data: allData[newTimeUnit].data,
+      },
     });
     setVisibleRange([0, 10]);
     setIsSliderAtEnd(true);
