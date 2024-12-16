@@ -50,7 +50,7 @@ const BeatsChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/sensor-data'); // Adjust the URL as needed
+        const response = await fetch('https://glowing-adventure-pjjr9pv4pgr7f74jw-5001.app.github.dev/sensor-data'); // Adjust the URL as needed
         const data = await response.json();
         const now = new Date();
         const time = timeUnit === 'seconds'

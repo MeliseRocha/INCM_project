@@ -23,12 +23,7 @@ const chartReducer = (state, action) => {
       return {
         ...state,
         labels: action.payload.labels,
-        datasets: [
-          {
-            ...state.datasets[0],
-            data: action.payload.data,
-          },
-        ],
+        datasets: [{ ...state.datasets[0], data: action.payload.data }],
       };
     default:
       return state;
@@ -40,28 +35,25 @@ const SensorChart = () => {
   const [avgSaturation, setAvgSaturation] = useState(0);
   const [visibleRange, setVisibleRange] = useState([0, 10]);
   const [isSliderAtEnd, setIsSliderAtEnd] = useState(true);
-  const [timeUnit, setTimeUnit] = useState('seconds');
   const [allData, setAllData] = useState({
-    seconds: { labels: [], data: [] },
-    minutes: { labels: [], data: [] },
-    hours: { labels: [], data: [] },
+    labels: [],
+    data: [],
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/sensor-data'); // Adjust the URL as needed
+        const response = await fetch('http://localhost:5002/sensor-data'); // Adjust the URL as needed
         const data = await response.json();
+        console.log('Fetched data:', data); // Debugging: Log fetched data
         const now = new Date();
-        const time = timeUnit === 'seconds'
-          ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
-          : timeUnit === 'minutes'
-          ? `${now.getHours()}:${now.getMinutes()}`
-          : `${now.getHours()}`;
+        const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
 
         setAllData(prevData => {
-          const newLabels = [...prevData[timeUnit].labels, time];
-          const newData = [...prevData[timeUnit].data, data[data.length - 1].SpO2]; // Get the latest SpO2 value
+          const newLabels = [...prevData.labels, time];
+          const newData = [...prevData.data, data[data.length - 1].SpO2]; // Get the latest SpO2 value
+          console.log('New Labels:', newLabels); // Debugging: Log new labels
+          console.log('New Data:', newData); // Debugging: Log new data
 
           const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
           const avgSaturation = totalSaturation / newData.length;
@@ -83,11 +75,8 @@ const SensorChart = () => {
           });
 
           return {
-            ...prevData,
-            [timeUnit]: {
-              labels: newLabels,
-              data: newData,
-            },
+            labels: newLabels,
+            data: newData,
           };
         });
       } catch (error) {
@@ -95,30 +84,16 @@ const SensorChart = () => {
       }
     };
 
-    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000; // 1 second, 1 minute, or 1 hour
+    const intervalDuration = 3000; // 3 seconds interval
     const interval = setInterval(fetchData, intervalDuration);
 
     return () => clearInterval(interval);
-  }, [isSliderAtEnd, visibleRange, timeUnit, chartData.datasets]);
+  }, [isSliderAtEnd, visibleRange, chartData.datasets]);
 
   const handleSliderChange = (event) => {
     const value = parseInt(event.target.value, 10);
     setVisibleRange([value, value + 10]);
     setIsSliderAtEnd(value + 10 >= chartData.labels.length);
-  };
-
-  const handleTimeUnitChange = (event) => {
-    const newTimeUnit = event.target.value;
-    setTimeUnit(newTimeUnit);
-    dispatch({
-      type: 'UPDATE_CHART',
-      payload: {
-        labels: allData[newTimeUnit].labels,
-        data: allData[newTimeUnit].data,
-      },
-    });
-    setVisibleRange([0, 10]);
-    setIsSliderAtEnd(true);
   };
 
   const options = {
@@ -201,14 +176,6 @@ const SensorChart = () => {
     <div style={{ width: '700px', height: '600px' }}>
       <Line data={chartData} options={options} />
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <label>
-          Time Unit:
-          <select value={timeUnit} onChange={handleTimeUnitChange} style={{ marginLeft: '10px' }}>
-            <option value="seconds">Seconds</option>
-            <option value="minutes">Minutes</option>
-            <option value="hours">Hours</option>
-          </select>
-        </label>
         <input
           type="range"
           min="0"
