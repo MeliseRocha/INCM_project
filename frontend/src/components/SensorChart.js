@@ -39,46 +39,63 @@ const SensorChart = () => {
     labels: [],
     data: [],
   });
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5002/sensor-data'); // Adjust the URL as needed
+        const response = await fetch('https://reimagined-eureka-7vv9wpq6pp47hr4gv-5001.app.github.dev/sensor-data'); // Adjust the URL as needed
         const data = await response.json();
-        console.log('Fetched data:', data); // Debugging: Log fetched data
-        const now = new Date();
-        const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+        console.log('Fetched data:', data); // Debugging: Log the fetched data
 
-        setAllData(prevData => {
-          const newLabels = [...prevData.labels, time];
-          const newData = [...prevData.data, data[data.length - 1].SpO2]; // Get the latest SpO2 value
-          console.log('New Labels:', newLabels); // Debugging: Log new labels
-          console.log('New Data:', newData); // Debugging: Log new data
+        // Check if data is an array and has the expected structure
+        if (Array.isArray(data) && data.length > 0) {
+          const latestData = data[data.length - 1]; // Get the latest data point
+          const latestSpO2 = latestData.SpO2; // Get SpO2 from the latest data point
 
-          const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
-          const avgSaturation = totalSaturation / newData.length;
+          // Check if the last data point is different from the previous one
+          setAllData(prevData => {
+            const lastSpO2 = prevData.data[prevData.data.length - 1]; // Last SpO2 value in current state
 
-          setAvgSaturation(avgSaturation.toFixed(2));
+            // Only update if the new data is different from the last data
+            if (latestSpO2 !== lastSpO2) {
+              const now = new Date();
+              const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
 
-          const newVisibleRange = isSliderAtEnd
-            ? [Math.max(0, newLabels.length - 10), newLabels.length]
-            : visibleRange;
+              const newLabels = [...prevData.labels, time];
+              const newData = [...prevData.data, latestSpO2];
 
-          setVisibleRange(newVisibleRange);
+              console.log('New Labels:', newLabels); // Debugging: Log new labels
+              console.log('New Data:', newData); // Debugging: Log new data
 
-          dispatch({
-            type: 'UPDATE_CHART',
-            payload: {
-              labels: newLabels,
-              data: newData,
-            },
+              const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
+              const avgSaturation = totalSaturation / newData.length;
+
+              setAvgSaturation(avgSaturation.toFixed(2));
+
+              const newVisibleRange = isSliderAtEnd
+                ? [Math.max(0, newLabels.length - 10), newLabels.length]
+                : visibleRange;
+
+              setVisibleRange(newVisibleRange);
+
+              dispatch({
+                type: 'UPDATE_CHART',
+                payload: {
+                  labels: newLabels,
+                  data: newData,
+                },
+              });
+
+              return {
+                labels: newLabels,
+                data: newData,
+              };
+            } else {
+              console.log('No new data, skipping update.');
+              return prevData; // Return the previous data if no change
+            }
           });
-
-          return {
-            labels: newLabels,
-            data: newData,
-          };
-        });
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -89,6 +106,10 @@ const SensorChart = () => {
 
     return () => clearInterval(interval);
   }, [isSliderAtEnd, visibleRange, chartData.datasets]);
+
+  
+
+  
 
   const handleSliderChange = (event) => {
     const value = parseInt(event.target.value, 10);
