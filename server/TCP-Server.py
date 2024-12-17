@@ -5,10 +5,25 @@ import json
 class SensorDataHandler(http.server.BaseHTTPRequestHandler):
     data_store = []
 
+    def set_cors_headers(self):
+        """Helper method to set the CORS headers."""
+        self.send_header('Access-Control-Allow-Origin', '*')  # Allow requests from any origin
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')  # Allow GET, POST, OPTIONS methods
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')  # Allow the Content-Type header
+
+    def do_OPTIONS(self):
+        """Handle OPTIONS method for preflight requests."""
+        self.send_response(200)
+        self.set_cors_headers()  # Set CORS headers for preflight
+        self.end_headers()
+
     def do_POST(self):
         # Log the request path
         print(f"Received POST request on {self.path}")
         
+        # Set CORS headers
+        self.set_cors_headers()
+
         # Read the content length
         content_length = int(self.headers['Content-Length'])
         
@@ -47,6 +62,9 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
         # Log the request path
         print(f"Received GET request on {self.path}")
         
+        # Set CORS headers
+        self.set_cors_headers()
+
         if self.path == '/sensor-data':
             # Return the stored data as JSON
             self.send_response(200)
