@@ -23,12 +23,7 @@ const chartReducer = (state, action) => {
       return {
         ...state,
         labels: action.payload.labels,
-        datasets: [
-          {
-            ...state.datasets[0],
-            data: action.payload.data,
-          },
-        ],
+        datasets: [{ ...state.datasets[0], data: action.payload.data }],
       };
     default:
       return state;
@@ -40,85 +35,86 @@ const SensorChart = () => {
   const [avgSaturation, setAvgSaturation] = useState(0);
   const [visibleRange, setVisibleRange] = useState([0, 10]);
   const [isSliderAtEnd, setIsSliderAtEnd] = useState(true);
-  const [timeUnit, setTimeUnit] = useState('seconds');
   const [allData, setAllData] = useState({
-    seconds: { labels: [], data: [] },
-    minutes: { labels: [], data: [] },
-    hours: { labels: [], data: [] },
+    labels: [],
+    data: [],
   });
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/sensor-data'); // Adjust the URL as needed
+        const response = await fetch('https://reimagined-eureka-7vv9wpq6pp47hr4gv-5001.app.github.dev/sensor-data'); // Adjust the URL as needed
         const data = await response.json();
-        const now = new Date();
-        const time = timeUnit === 'seconds'
-          ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
-          : timeUnit === 'minutes'
-          ? `${now.getHours()}:${now.getMinutes()}`
-          : `${now.getHours()}`;
+        console.log('Fetched data:', data); // Debugging: Log the fetched data
 
-        setAllData(prevData => {
-          const newLabels = [...prevData[timeUnit].labels, time];
-          const newData = [...prevData[timeUnit].data, data[data.length - 1].SpO2]; // Get the latest SpO2 value
+        // Check if data is an array and has the expected structure
+        if (Array.isArray(data) && data.length > 0) {
+          const latestData = data[data.length - 1]; // Get the latest data point
+          const latestSpO2 = latestData.SpO2; // Get SpO2 from the latest data point
 
-          const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
-          const avgSaturation = totalSaturation / newData.length;
+          // Check if the last data point is different from the previous one
+          setAllData(prevData => {
+            const lastSpO2 = prevData.data[prevData.data.length - 1]; // Last SpO2 value in current state
 
-          setAvgSaturation(avgSaturation.toFixed(2));
+            // Only update if the new data is different from the last data
+            if (latestSpO2 !== lastSpO2) {
+              const now = new Date();
+              const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
 
-          const newVisibleRange = isSliderAtEnd
-            ? [Math.max(0, newLabels.length - 10), newLabels.length]
-            : visibleRange;
+              const newLabels = [...prevData.labels, time];
+              const newData = [...prevData.data, latestSpO2];
 
-          setVisibleRange(newVisibleRange);
+              console.log('New Labels:', newLabels); // Debugging: Log new labels
+              console.log('New Data:', newData); // Debugging: Log new data
 
-          dispatch({
-            type: 'UPDATE_CHART',
-            payload: {
-              labels: newLabels,
-              data: newData,
-            },
+              const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
+              const avgSaturation = totalSaturation / newData.length;
+
+              setAvgSaturation(avgSaturation.toFixed(2));
+
+              const newVisibleRange = isSliderAtEnd
+                ? [Math.max(0, newLabels.length - 10), newLabels.length]
+                : visibleRange;
+
+              setVisibleRange(newVisibleRange);
+
+              dispatch({
+                type: 'UPDATE_CHART',
+                payload: {
+                  labels: newLabels,
+                  data: newData,
+                },
+              });
+
+              return {
+                labels: newLabels,
+                data: newData,
+              };
+            } else {
+              console.log('No new data, skipping update.');
+              return prevData; // Return the previous data if no change
+            }
           });
-
-          return {
-            ...prevData,
-            [timeUnit]: {
-              labels: newLabels,
-              data: newData,
-            },
-          };
-        });
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
 
-    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000; // 1 second, 1 minute, or 1 hour
+    const intervalDuration = 3000; // 3 seconds interval
     const interval = setInterval(fetchData, intervalDuration);
 
     return () => clearInterval(interval);
-  }, [isSliderAtEnd, visibleRange, timeUnit, chartData.datasets]);
+  }, [isSliderAtEnd, visibleRange, chartData.datasets]);
+
+  
+
+  
 
   const handleSliderChange = (event) => {
     const value = parseInt(event.target.value, 10);
     setVisibleRange([value, value + 10]);
     setIsSliderAtEnd(value + 10 >= chartData.labels.length);
-  };
-
-  const handleTimeUnitChange = (event) => {
-    const newTimeUnit = event.target.value;
-    setTimeUnit(newTimeUnit);
-    dispatch({
-      type: 'UPDATE_CHART',
-      payload: {
-        labels: allData[newTimeUnit].labels,
-        data: allData[newTimeUnit].data,
-      },
-    });
-    setVisibleRange([0, 10]);
-    setIsSliderAtEnd(true);
   };
 
   const options = {
@@ -201,14 +197,6 @@ const SensorChart = () => {
     <div style={{ width: '700px', height: '600px' }}>
       <Line data={chartData} options={options} />
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <label>
-          Time Unit:
-          <select value={timeUnit} onChange={handleTimeUnitChange} style={{ marginLeft: '10px' }}>
-            <option value="seconds">Seconds</option>
-            <option value="minutes">Minutes</option>
-            <option value="hours">Hours</option>
-          </select>
-        </label>
         <input
           type="range"
           min="0"

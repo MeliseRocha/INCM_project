@@ -47,59 +47,79 @@ const BeatsChart = () => {
     hours: { labels: [], data: [] },
   });
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5001/sensor-data'); // Adjust the URL as needed
+        const response = await fetch('https://reimagined-eureka-7vv9wpq6pp47hr4gv-5001.app.github.dev/sensor-data');
         const data = await response.json();
-        const now = new Date();
-        const time = timeUnit === 'seconds'
-          ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
-          : timeUnit === 'minutes'
-          ? `${now.getHours()}:${now.getMinutes()}`
-          : `${now.getHours()}`;
-
-        setAllData(prevData => {
-          const newLabels = [...prevData[timeUnit].labels, time];
-          const newData = [...prevData[timeUnit].data, data[data.length - 1].BPM]; // Get the latest BPM value
-
-          const totalBeats = newData.reduce((acc, val) => acc + val, 0);
-          const avgBeats = totalBeats / newData.length;
-
-          setAvgBeats(avgBeats.toFixed(2));
-
-          const newVisibleRange = isSliderAtEnd
-            ? [Math.max(0, newLabels.length - 10), newLabels.length]
-            : visibleRange;
-
-          setVisibleRange(newVisibleRange);
-
-          dispatch({
-            type: 'UPDATE_CHART',
-            payload: {
-              labels: newLabels,
-              data: newData,
-            },
+        console.log('Fetched data:', data); // Log the data to verify its structure
+    
+        if (data.length > 0 && data[data.length - 1].BPM !== undefined) {
+          const latestBPM = data[data.length - 1].BPM; // Get the latest BPM value
+  
+          // Check if the latest BPM is different from the last one in the state
+          setAllData(prevData => {
+            const lastBPM = prevData[timeUnit].data[prevData[timeUnit].data.length - 1]; // Last BPM value in current state
+  
+            // If the latest data is the same as the last one, skip the update
+            if (latestBPM === lastBPM) {
+              console.log('No new BPM data, skipping update.');
+              return prevData; // Return the previous data to prevent update
+            }
+  
+            // If new data is different, update the chart
+            const now = new Date();
+            const time = timeUnit === 'seconds'
+              ? `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`
+              : timeUnit === 'minutes'
+              ? `${now.getHours()}:${now.getMinutes()}`
+              : `${now.getHours()}`;
+    
+            const newLabels = [...prevData[timeUnit].labels, time];
+            const newData = [...prevData[timeUnit].data, latestBPM]; // Get the latest BPM value
+    
+            const totalBeats = newData.reduce((acc, val) => acc + val, 0);
+            const avgBeats = totalBeats / newData.length;
+    
+            setAvgBeats(avgBeats.toFixed(2));
+    
+            const newVisibleRange = isSliderAtEnd
+              ? [Math.max(0, newLabels.length - 10), newLabels.length]
+              : visibleRange;
+    
+            setVisibleRange(newVisibleRange);
+    
+            dispatch({
+              type: 'UPDATE_CHART',
+              payload: {
+                labels: newLabels,
+                data: newData,
+              },
+            });
+    
+            return {
+              ...prevData,
+              [timeUnit]: {
+                labels: newLabels,
+                data: newData,
+              },
+            };
           });
-
-          return {
-            ...prevData,
-            [timeUnit]: {
-              labels: newLabels,
-              data: newData,
-            },
-          };
-        });
+        } else {
+          console.warn('No valid data received from the API');
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-
-    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000; // 1 second, 1 minute, or 1 hour
+  
+    const intervalDuration = timeUnit === 'seconds' ? 1000 : timeUnit === 'minutes' ? 60000 : 3600000;
     const interval = setInterval(fetchData, intervalDuration);
-
+  
     return () => clearInterval(interval);
   }, [isSliderAtEnd, visibleRange, timeUnit, chartData.datasets]);
+  
 
   const handleSliderChange = (event) => {
     const value = parseInt(event.target.value, 10);
