@@ -101,8 +101,10 @@ class Verify2FAResource(Resource):
             raise TypeError("Invalid Type of Code")
 
         if check_password_hash(verification_code_hash, entered_code):
+            
+            id = get_user_id(username)
             # If successful, generate a new access token
-            access_token = create_access_token(identity={"username": username})
+            access_token = create_access_token(identity={"username": username, "id":id})
 
             return make_response(jsonify({'access_token': access_token, 'message': '2FA successful!'}), 200)
         else:
@@ -191,6 +193,27 @@ def get_user_email(username):
 
     except sqlite3.Error as e:
         return {'message': f'Database error: {str(e)}'}, 500
+    
+def get_user_id(username):
+    if not username:
+        return {'message': 'No username provided'}, 400
+
+    # Query the database for the user's ID
+    try:
+        with sqlite3.connect('database.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM doctors WHERE username = ?', (username,))
+            user = cursor.fetchone()
+
+            if not user:
+                return {'message': 'Username not found'}, 404
+
+            # Return the user ID as a string or integer
+            return user[0]
+
+    except sqlite3.Error as e:
+        return {'message': f'Database error: {str(e)}'}, 500
+
 
 
             
