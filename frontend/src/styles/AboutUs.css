@@ -1,0 +1,29 @@
+.about-container {
+    display: flex;
+    justify-content: center;
+    height: 80vh;
+    padding: 80px 20px; /* Add padding to the left and right sides */
+    background-color: #f0f0f0; /* Light background color */
+  }
+  
+  .content {
+    width: 100%;
+    max-width: 800px; /* Limit the maximum width */
+    padding: 20px;
+    border-radius: 20px; /* Rounder corners */
+    background: linear-gradient(145deg, #f0e6d6, #f8f1e7); /* Light gradient background */
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1), -5px 0 15px rgba(0, 0, 0, 0.1); /* Slight shadow on both sides */
+    color: #333; /* Dark text color */
+  }
+
+  .content h1 {
+    font-size: 36px;
+    margin-bottom: 20px;
+  }
+  
+  .content p {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    text-align: justify; /* Justify text for better readability */
+  }
