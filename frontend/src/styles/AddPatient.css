@@ -1,0 +1,49 @@
+.add-patient-container {
+    padding: 20px;
+  }
+  
+  .add-patient-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .add-patient-form label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+  }
+  
+  .add-patient-form input,
+  .add-patient-form textarea {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .form-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .form-buttons button {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+  }
+  
+  .form-buttons button:hover {
+    background-color: #0056b3;
+  }
+  
+  .form-buttons button[type="button"] {
+    background-color: #ccc;
+    color: #333;
+  }
+  
+  .form-buttons button[type="button"]:hover {
+    background-color: #999;
+  }
