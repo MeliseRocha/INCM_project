@@ -7,6 +7,7 @@ import Register from './components/Register';
 import TwoFactorAuth from './components/TwoFactorAuth';
 import Dashboard from './components/Dashboard';
 import AddPatient from './components/AddPatient';
+import PatientData from './components/PatientData';
 
 
 const App = () => {
@@ -20,6 +21,7 @@ const App = () => {
         <Route path="/2fa" element={<TwoFactorAuth />} />
         <Route path="/dashboard" element={<Dashboard />} />  
         <Route path="/add-patient" element={<AddPatient />} />
+        <Route path="/patient-data" element={<PatientData />} /> 
       </Routes>
     </Router>
   );

@@ -1,42 +1,71 @@
 .dashboard-container {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Align items to the start of the container */
-    position: relative; /* Set position to relative to position the button absolutely */
-  }
-  
-  .patients-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%; /* Ensure the patients list takes the full width */
-  }
-  
-  .patient-item {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-  }
-  
-  .add-patient-button {
-    position: absolute; /* Position the button absolutely */
-    top: 20px; /* Adjust the top position as needed */
-    right: 20px; /* Adjust the right position as needed */
-    width: 50px; /* Set width to ensure it's a circle */
-    height: 50px; /* Set height to ensure it's a circle */
-    font-size: 24px;
-    color: #fff;
-    background-color: #007bff;
-    border: none;
-    border-radius: 50%; /* Make it a circle */
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-    line-height: 50px; /* Center the text vertically */
-  }
-  
-  .add-patient-button:hover {
-    background-color: #0056b3;
-  }
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Align items to the start of the container */
+  position: relative; /* Set position to relative to position the button absolutely */
+}
+
+.logout-button {
+  align-self: flex-end; /* Align the logout button to the right */
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #8b44c1; /* Red background color */
+  color: #fff;
+  cursor: pointer;
+  margin-bottom: 20px; /* Add some space below the button */
+}
+
+.logout-button:hover {
+  background-color: #25274d; 
+}
+
+.patients-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%; /* Ensure the patients list takes the full width */
+}
+
+.patient-item {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.see-stats-button {
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.see-stats-button:hover {
+  background-color: #0056b3;
+}
+
+.add-patient-button {
+  position: absolute; /* Position the button absolutely */
+  top: 20px; /* Adjust the top position as needed */
+  right: 20px; /* Adjust the right position as needed */
+  width: 50px; /* Set width to ensure it's a circle */
+  height: 50px; /* Set height to ensure it's a circle */
+  font-size: 24px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 50%; /* Make it a circle */
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 50px; /* Center the text vertically */
+}
+
+.add-patient-button:hover {
+  background-color: #0056b3;
+}

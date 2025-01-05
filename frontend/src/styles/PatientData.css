@@ -1,0 +1,48 @@
+.patient-data-container {
+  padding: 20px;
+}
+
+.patient-data {
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+}
+
+.patient-data h2 {
+  margin-bottom: 20px;
+}
+
+.charts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.patient-data button {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.patient-data button:hover {
+  background-color: #0056b3;
+}
+
+.back-button {
+
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: #8b44c1; /* Match the color of the logout button */
+  color: #fff;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #25274d; /* Match the hover color of the logout button */
+}

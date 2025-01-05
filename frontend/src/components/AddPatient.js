@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/AddPatient.css'; // Import the CSS file for styling
 
 const AddPatient = () => {
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState('');
+  const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   const [address, setAddress] = useState('');
   const [medicalHistory, setMedicalHistory] = useState('');
@@ -16,11 +18,16 @@ const AddPatient = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     // Handle form submission logic here
-    console.log('New Patient:', { name, age, gender, contact, address, medicalHistory, currentMedications, condition });
+    console.log('New Patient:', { firstName, lastName, dateOfBirth, gender, email, contact, address, medicalHistory, currentMedications, condition });
   };
 
   const handleCancel = () => {
     navigate('/dashboard'); // Navigate back to the Dashboard
+  };
+
+  const handleSeeData = () => {
+    // Navigate to the PatientData component and pass the patient's data as state
+    navigate('/patient-data', { state: { firstName, lastName, dateOfBirth, gender, email, contact, address, medicalHistory, currentMedications, condition } });
   };
 
   return (
@@ -28,16 +35,29 @@ const AddPatient = () => {
       <h1>Add New Patient</h1>
       <form onSubmit={handleSubmit} className="add-patient-form">
         <label>
-          Name:
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+          First Name:
+          <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         </label>
         <label>
-          Age:
-          <input type="number" value={age} onChange={(e) => setAge(e.target.value)} required />
+          Last Name:
+          <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+        </label>
+        <label>
+          Date of Birth:
+          <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required />
         </label>
         <label>
           Gender:
-          <input type="text" value={gender} onChange={(e) => setGender(e.target.value)} required />
+          <select value={gender} onChange={(e) => setGender(e.target.value)} required>
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+        <label>
+          Email:
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
           Contact:
@@ -61,7 +81,8 @@ const AddPatient = () => {
         </label>
         <div className="form-buttons">
           <button type="submit">Add Patient</button>
-          <button type="button" onClick={handleCancel}>Cancel</button>
+          <button type="button" onClick={handleCancel} className="back-button">Back</button>
+          {/* <button type="button" onClick={handleSeeData}>See Data</button> */}
         </div>
       </form>
     </div>
