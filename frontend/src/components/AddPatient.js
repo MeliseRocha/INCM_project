@@ -15,11 +15,45 @@ const AddPatient = () => {
   const [condition, setCondition] = useState('');
   const navigate = useNavigate(); // Initialize the useNavigate hook
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log('New Patient:', { firstName, lastName, dateOfBirth, gender, email, contact, address, medicalHistory, currentMedications, condition });
+  
+    const patientData = {
+      first_name: firstName,
+      last_name: lastName,
+      date_of_birth: dateOfBirth,
+      gender,
+      email,
+      contact,
+      address,
+      medical_history: medicalHistory,
+      current_medication: currentMedications,
+      condition,
+    };
+  
+    try {
+      const response = await fetch('http://localhost:5000/add-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(patientData),
+      });
+  
+      if (response.ok) {
+        const result = await response.json();
+        alert('Patient added successfully!');
+        navigate('/dashboard');
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      alert('An error occurred. Please try again later.');
+    }
   };
+  
 
   const handleCancel = () => {
     navigate('/dashboard'); // Navigate back to the Dashboard

@@ -18,7 +18,7 @@ const PatientData = () => {
       <h1>Patient Data</h1>
       <button onClick={handleBack} className="back-button">Back</button>
       <div className="patient-data">
-        <h2>{patient.firstName} {patient.lastName}'s Data</h2>
+      <h2>{patient.first_name} {patient.last_name}'s Data</h2>
         <div className="charts-container">
           <BeatsChart />
           <SensorChart />
