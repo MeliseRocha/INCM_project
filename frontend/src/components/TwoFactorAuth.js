@@ -24,6 +24,7 @@ const TwoFactorAuth = () => {
       if (response.ok) {
         // Store the access token in localStorage
         localStorage.setItem('access_token', data.access_token);
+        localStorage.removeItem('temporary_token');
 
         // Navigate to the dashboard
         navigate('/dashboard');

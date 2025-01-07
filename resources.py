@@ -92,7 +92,8 @@ class Verify2FAResource(Resource):
 
         # Decode the temporary token and get the user identity data
         decoded_token = get_jwt_identity()
-        username = decoded_token.get("username")
+        global doctor_username
+        doctor_username = decoded_token.get("username")
         verification_code_hash = decoded_token.get("verification_code_hash")
 
         # Check the entered code against the hash
@@ -101,17 +102,91 @@ class Verify2FAResource(Resource):
             raise TypeError("Invalid Type of Code")
 
         if check_password_hash(verification_code_hash, entered_code):
-            
-            id = get_user_id(username)
+            global doctor_id
+            doctor_id = get_user_id(doctor_username)
             # If successful, generate a new access token
-            access_token = create_access_token(identity={"username": username, "id":id})
+            access_token = create_access_token(identity={"username": doctor_username, "id": doctor_id})
 
             return make_response(jsonify({'access_token': access_token, 'message': '2FA successful!'}), 200)
         else:
             # If the code is incorrect, return an error
             return make_response(jsonify({'message': 'Invalid verification code'}), 401)
+        
+class AddPatientResource(Resource):
+    def post(self):
+        try:
+            data = request.get_json()
+            if not data:
+                return make_response(jsonify({'message': 'No input data provided'}), 400)
+            
+            first_name = data.get('first_name')
+            last_name = data.get('last_name')
+            date_of_birth = data.get('date_of_birth')
+            gender = data.get('gender')
+            email = data.get('email')
+            contact = data.get('contact')
+            address = data.get('address')
+            medical_history = data.get('medical_history')
+            current_medication = data.get('current_medication')
+            condition = data.get('condition')
 
-    
+            if not all([first_name, last_name, date_of_birth, gender, email, contact, address]):
+                return make_response(jsonify({'message': 'Missing required fields'}), 400)
+
+            # Save the patient in the database
+            with sqlite3.connect('database.db') as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute('''
+                        INSERT INTO patients 
+                        (first_name, last_name, date_of_birth, gender, email, contact, address, medical_history, current_medication, condition, doctor_id, data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                    ''', (first_name, last_name, date_of_birth, gender, email, contact, address, medical_history, current_medication, condition, doctor_id))
+                    conn.commit()
+                    return make_response(jsonify({'message': 'Patient added successfully'}), 201)
+                except sqlite3.IntegrityError:
+                    return make_response(jsonify({'message': 'Email already exists'}), 400)
+                except Exception as e:
+                    return make_response(jsonify({'message': str(e)}), 500)
+        except Exception as e:
+            return make_response(jsonify({'message': 'Error Adding Patient.', 'error': str(e)}), 401)
+
+
+class GetPatientsResource(Resource):
+    def get(self):
+        try:
+            
+            if doctor_id is None:
+                return {'message': 'Doctor ID is not set.'}, 400
+            
+            # Connect to the database
+            with sqlite3.connect('database.db') as conn:
+                conn.row_factory = sqlite3.Row  # To return rows as dictionaries
+                cursor = conn.cursor()
+                
+                # Parameterized query to filter patients by doctor_id
+                query = '''
+                    SELECT id, first_name, last_name, date_of_birth, gender, email, contact, address, 
+                           medical_history, current_medication, condition
+                    FROM patients 
+                    WHERE doctor_id = ?
+                '''
+                cursor.execute(query, (doctor_id,))
+                rows = cursor.fetchall()
+
+                # Convert rows to a list of dictionaries
+                patients = [dict(row) for row in rows]
+
+                # Debug: Print patients to the console
+                print("Fetched Patients:", patients)
+
+                return {'patients': patients}, 200
+        except Exception as e:
+            # Debug: Print the error to the console
+            print("Error fetching patients:", str(e))
+            return {'message': str(e)}, 500
+        
+ 
 
             
 
