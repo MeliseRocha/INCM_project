@@ -4,6 +4,8 @@ from flask_restful import Api
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager  # Import JWTManager
 from resources import RegisterResource, LoginResource, Verify2FAResource, AddPatientResource, GetPatientsResource
+from server.tcp_server import run_tcp_server
+import threading
 
 app = Flask(__name__)
 CORS(app)  
@@ -63,6 +65,18 @@ api.add_resource(Verify2FAResource, '/verify-2fa')
 api.add_resource(AddPatientResource, '/add-patient')
 api.add_resource(GetPatientsResource, '/get-patients')
 
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Start Flask app in a separate thread
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
+    # Start TCP server in a separate thread
+    tcp_thread = threading.Thread(target=run_tcp_server, daemon=True)
+    tcp_thread.start()
+
+    # Allow both servers to run concurrently
+    flask_thread.join()  # Block the main thread, ensuring both servers keep running
+    tcp_thread.join()  # Block the main thread, ensuring both servers keep running
