@@ -138,22 +138,43 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
         connection = sqlite3.connect(self.database_name)
         cursor = connection.cursor()
 
-        cursor.execute('SELECT * FROM patients')
+        # Modify the query to select only the 'id' and 'data' columns
+        cursor.execute('SELECT id, data FROM patients')
         rows = cursor.fetchall()
         connection.close()
 
         data = []
         for row in rows:
-            patient_id, patient_data = row
-            data.append({"id": patient_id, "data": json.loads(patient_data)})
+            patient_id = row[0]  # First column (id)
+            patient_data = row[1]  # Second column (data)
+
+            # Check if the 'data' is None or empty and handle accordingly
+            if patient_data is None:
+                patient_data = []  # Default to empty list if no data exists
+            else:
+                try:
+                    patient_data = json.loads(patient_data)  # Try to parse the JSON data
+                except json.JSONDecodeError:
+                    print(f"Invalid JSON in data for patient {patient_id}, using empty list")
+                    patient_data = []  # Use empty list if JSON decoding fails
+
+            data.append({"id": patient_id, "data": patient_data})
+        
         return data
+
+
 
     def log_message(self, format, *args):
         return  # Suppress default logging to keep output clean
+    
+def run_tcp_server():
+    PORT = 8002
+    Handler = SensorDataHandler
 
-PORT = 5001
-Handler = SensorDataHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print(f"Serving on port {PORT}")
+        httpd.serve_forever()
 
-with socketserver.TCPServer(("", PORT), Handler) as httpd:
-    print(f"Serving on port {PORT}")
-    httpd.serve_forever()
+
+if __name__ == "__main__":
+    run_tcp_server()
