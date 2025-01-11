@@ -1,4 +1,3 @@
-py3-flask
 Flask
 Flask-RESTful
 Flask-JWT-Extended
