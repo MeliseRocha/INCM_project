@@ -20,8 +20,9 @@ const PatientData = () => {
       <div className="patient-data">
       <h2>{patient.first_name} {patient.last_name}'s Data</h2>
         <div className="charts-container">
-          <BeatsChart />
           <SensorChart />
+          <BeatsChart />
+
         </div>
       </div>
     </div>
