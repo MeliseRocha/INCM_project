@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 import '../styles/Form.css'; // Import the form styling
 
 const Register = () => {
@@ -9,6 +10,8 @@ const Register = () => {
     email: '',
     password: ''
   });
+
+  const navigate = useNavigate(); // Initialize the navigate function
 
   const handleChange = (e) => {
     setFormData({
@@ -31,7 +34,7 @@ const Register = () => {
 
       if (response.status === 201) {
         alert(result.message);
-        // Optionally redirect to login or another page
+        navigate('/'); // Redirect to the homepage
       } else {
         alert(result.message);
       }

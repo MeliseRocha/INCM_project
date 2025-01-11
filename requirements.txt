@@ -6,3 +6,4 @@ Werkzeug
 sqlite3-binary
 pytz
 smtplib3
+apscheduler
