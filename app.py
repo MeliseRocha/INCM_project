@@ -4,7 +4,10 @@ from flask_restful import Api
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager  # Import JWTManager
 from resources import RegisterResource, LoginResource, Verify2FAResource, AddPatientResource, GetPatientsResource
+from monitor_database import process_patients  # Import the process_patients function
 from server.tcp_server import run_tcp_server
+from apscheduler.schedulers.background import BackgroundScheduler  # Importing the scheduler
+from apscheduler.triggers.cron import CronTrigger  # Importing cron trigger
 import threading
 
 app = Flask(__name__)
@@ -59,7 +62,7 @@ def hello_world():
     return 'Hello, World!'
 
 # API routes
-api.add_resource(RegisterResource, '/register')  # Register route
+api.add_resource(RegisterResource, '/register')
 api.add_resource(LoginResource, '/login')
 api.add_resource(Verify2FAResource, '/verify-2fa')
 api.add_resource(AddPatientResource, '/add-patient')
@@ -68,7 +71,20 @@ api.add_resource(GetPatientsResource, '/get-patients')
 def run_flask():
     app.run(host='0.0.0.0', port=5000)
 
+def run_scheduled_task():
+    print("Scheduled task is running...")
+    process_patients()  
+
+
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_scheduled_task, CronTrigger(hour=17, minute=25))
+    scheduler.start()
+
 if __name__ == '__main__':
+    # Start the scheduler
+    start_scheduler()
+
     # Start Flask app in a separate thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
@@ -77,6 +93,6 @@ if __name__ == '__main__':
     tcp_thread = threading.Thread(target=run_tcp_server, daemon=True)
     tcp_thread.start()
 
-    # Allow both servers to run concurrently
+    # Allow both servers and the scheduler to run concurrently
     flask_thread.join()  # Block the main thread, ensuring both servers keep running
     tcp_thread.join()  # Block the main thread, ensuring both servers keep running

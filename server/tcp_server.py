@@ -77,12 +77,17 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             try:
                 # Retrieve all data from the database
                 data = self.get_all_data()
-                self.wfile.write(json.dumps(data).encode())
+                
+                # Convert the data into FHIR-compliant observations
+                fhir_data = self.generate_fhir_observations(data)
+                
+                # Send the FHIR-compliant data as the response
+                self.wfile.write(json.dumps(fhir_data, indent=2).encode())
             except Exception as e:
-                print(f"Error retrieving data: {e}")
+                print(f"Error processing FHIR data: {e}")
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Error retrieving data")
+                self.wfile.write(b"Error processing FHIR data")
         else:
             self.send_response(404)
             self.send_cors_headers()
@@ -161,6 +166,91 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             data.append({"id": patient_id, "data": patient_data})
         
         return data
+
+    def generate_fhir_observations(self, database_data):
+        spo2_template = {
+            "resourceType": "Observation",
+            "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/vitalsigns"]},
+            "status": "final",
+            "category": [{
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                    "code": "vital-signs",
+                    "display": "Vital Signs"
+                }],
+                "text": "Vital Signs"
+            }],
+            "code": {
+                "coding": [{
+                    "system": "http://loinc.org",
+                    "code": "59408-5",
+                    "display": "Oxygen saturation in Arterial blood by Pulse oximetry"
+                }]
+            },
+        }
+
+        bpm_template = {
+            "resourceType": "Observation",
+            "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/vitalsigns"]},
+            "status": "final",
+            "category": [{
+                "coding": [{
+                    "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                    "code": "vital-signs",
+                    "display": "Vital Signs"
+                }],
+                "text": "Vital Signs"
+            }],
+            "code": {
+                "coding": [{
+                    "system": "http://loinc.org",
+                    "code": "8867-4",
+                    "display": "Heart rate"
+                }]
+            },
+        }
+
+        fhir_observations = []
+
+        for patient in database_data:
+            patient_id = patient["id"]
+            observations = patient["data"]
+
+            for observation in observations:
+                # Generate FHIR-compliant SpO2 observation
+                spo2_observation = spo2_template.copy()
+                spo2_observation.update({
+                    "id": f"spo2-{patient_id}-{observation['time']}",
+                    "subject": {"reference": f"Patient/{patient_id}"},
+                    "effectiveDateTime": observation["time"],
+                    "valueQuantity": {
+                        "value": observation["SpO2"],
+                        "unit": "%",
+                        "system": "http://unitsofmeasure.org",
+                        "code": "%"
+                    }
+                })
+
+                # Generate FHIR-compliant BPM observation
+                bpm_observation = bpm_template.copy()
+                bpm_observation.update({
+                    "id": f"bpm-{patient_id}-{observation['time']}",
+                    "subject": {"reference": f"Patient/{patient_id}"},
+                    "effectiveDateTime": observation["time"],
+                    "valueQuantity": {
+                        "value": observation["BPM"],
+                        "unit": "beats/minute",
+                        "system": "http://unitsofmeasure.org",
+                        "code": "/min"
+                    }
+                })
+
+                # Add observations to the list
+                fhir_observations.append(spo2_observation)
+                fhir_observations.append(bpm_observation)
+
+        return fhir_observations
+
 
 
 
