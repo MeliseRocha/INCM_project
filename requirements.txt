@@ -1,1 +1,13 @@
-py3-flask
+Flask
+Flask-RESTful
+Flask-JWT-Extended
+Flask-Cors
+Werkzeug
+sqlite3-binary
+pytz
+smtplib3
+apscheduler
+email  
+http.server  
+json  
+urllib3  

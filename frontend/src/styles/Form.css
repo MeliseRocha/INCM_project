@@ -1,0 +1,45 @@
+.form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f0f0f0; /* Light background color */
+}
+  
+  .form {
+    width: 500px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    background-color: #1c2345d7; /* Slightly lighter dark blue */
+  }
+  
+  .form h1 {
+    color: #ffffff; /* Light blue text color */
+    text-align: center;
+  }
+  
+  .form input {
+    width: 100%;
+    padding: 10px 0;
+    margin: 15px 0;
+   
+    border-radius: 5px;
+    background-color: #282c34; /* Dark blue background color */
+    color: #ffffff; /* White text color */
+  }
+  
+  .form button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #ffffff; /* Light blue button color */
+    color: #282c34; /* Dark blue text color */
+    cursor: pointer;
+  }
+  
+  .form button:hover {
+    background-color: #21a1f1; /* Slightly darker blue on hover */
+  }
