@@ -1,118 +1,59 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import zoomPlugin from 'chartjs-plugin-zoom';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
-
-const initialState = {
-  labels: [],
-  datasets: [
-    {
-      label: 'Saturation',
-      data: [],
-      borderColor: 'rgba(75,192,192,1)',
-      backgroundColor: 'rgba(75,192,192,0.2)',
-    },
-  ],
-};
-
-const chartReducer = (state, action) => {
-  switch (action.type) {
-    case 'UPDATE_CHART':
-      return {
-        ...state,
-        labels: action.payload.labels,
-        datasets: [{ ...state.datasets[0], data: action.payload.data }],
-      };
-    default:
-      return state;
-  }
-};
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
 
 const SensorChartMonth = () => {
   const location = useLocation();
   const patient = location.state;
+  const patientId = patient.id;
 
-  const [chartData, dispatch] = useReducer(chartReducer, initialState);
-  const [avgSaturation, setAvgSaturation] = useState(0);
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
-  const [allData, setAllData] = useState({
-    labels: [],
-    data: [],
-  });
+  const [chartData, setChartData] = useState([]);
+  const [lowMeasurementDays, setLowMeasurementDays] = useState([]);
+  const [zeroMeasurementDays, setZeroMeasurementDays] = useState([]);
 
-  // Add a list of available years
-  const [availableYears, setAvailableYears] = useState([2023, 2024, 2025, 2026]); // Modify this as needed
+  const availableYears = [2023, 2024, 2025, 2026];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8002/sensor-data');
-        const data = response.data;
-
-        if (Array.isArray(data) && data.length > 0) {
-          // Filter observations for the current patient and SpO2 data
-          const patientObservations = data.filter(
-            entry =>
-              entry.subject.reference === `Patient/${patient.id}` &&
-              entry.code.coding.some(coding => coding.code === '59408-5')
-          );
-
-          if (patientObservations.length > 0) {
-            // Get the start and end of the selected month
-            const startOfMonth = new Date(year, month, 1);
-            const endOfMonth = new Date(year, month + 1, 0);
-
-            // Filter for the selected month's data
-            const monthlyObservations = patientObservations.filter(entry => {
-              const observationDate = new Date(entry.effectiveDateTime);
-              return observationDate >= startOfMonth && observationDate <= endOfMonth;
-            });
-
-            const sortedObservations = monthlyObservations.sort((a, b) =>
-              new Date(a.effectiveDateTime) - new Date(b.effectiveDateTime)
-            );
-
-            const newLabels = sortedObservations.map(entry => entry.effectiveDateTime);
-            const newData = sortedObservations.map(entry => entry.valueQuantity.value);
-
-            setAllData({ labels: newLabels, data: newData });
-
-            // Calculate the average saturation for the selected month
-            const totalSaturation = newData.reduce((acc, val) => acc + val, 0);
-            const avgSaturation = totalSaturation / newData.length;
-
-            setAvgSaturation(avgSaturation.toFixed(2));
-
-            dispatch({
-              type: 'UPDATE_CHART',
-              payload: {
-                labels: newLabels,
-                data: newData,
-              },
-            });
-          }
+        const response = await fetch(`http://localhost:5000/api/monthly_data/${patientId}?month=${month + 1}&year=${year}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
         }
+        const data = await response.json();
+        setChartData(data.data);
+        setLowMeasurementDays(data.low_measurement_days);
+        setZeroMeasurementDays(data.zero_measurement_days); // Set the zero measurement days
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-
+  
     fetchData();
-  }, [patient.id, month, year]); // Re-fetch when month or year changes
+  }, [patientId, month, year]);
+  
 
   const handleMonthChange = (event) => {
-    const selectedMonth = parseInt(event.target.value, 10);
-    setMonth(selectedMonth); // Set the month
+    setMonth(parseInt(event.target.value, 10));
   };
 
   const handleYearChange = (event) => {
-    const selectedYear = parseInt(event.target.value, 10);
-    setYear(selectedYear); // Set the year
+    setYear(parseInt(event.target.value, 10));
   };
 
   const options = {
@@ -135,27 +76,12 @@ const SensorChartMonth = () => {
           size: 18,
         },
       },
-      zoom: {
-        pan: {
-          enabled: true,
-          mode: 'x',
-        },
-        zoom: {
-          wheel: {
-            enabled: true,
-          },
-          pinch: {
-            enabled: true,
-          },
-          mode: 'x',
-        },
-      },
     },
     scales: {
       x: {
         title: {
           display: true,
-          text: 'Time',
+          text: 'Day of the Month',
           color: 'rgba(200, 200, 200, 0.8)',
           font: {
             size: 16,
@@ -171,7 +97,7 @@ const SensorChartMonth = () => {
       y: {
         title: {
           display: true,
-          text: 'Saturation',
+          text: 'Total Hours of Saturation Above 88%',
           color: 'rgba(200, 200, 200, 0.8)',
           font: {
             size: 16,
@@ -183,10 +109,24 @@ const SensorChartMonth = () => {
             size: 14,
           },
         },
-        min: 50,
-        max: 100,
+        min: 0,
+        max: 24,
       },
     },
+  };
+
+  const data = {
+    labels: chartData.map((item) => item.day_of_the_month),
+    datasets: [
+      {
+        label: 'Hours With Saturation Above 88',
+        data: chartData.map((item) => item.total_hours_used),
+        borderColor: 'rgba(75,192,192,1)',
+        backgroundColor: 'rgba(75,192,192,0.2)',
+        pointStyle: 'circle',
+        pointRadius: 5,
+      },
+    ],
   };
 
   return (
@@ -219,9 +159,20 @@ const SensorChartMonth = () => {
           })}
         </select>
       </div>
-      
-      <Line data={chartData} options={options} />
-      <p>Avg Saturation for {new Date(year, month).toLocaleString('default', { month: 'long' })} {year}: {avgSaturation}</p>
+
+      <Line data={data} options={options} />
+
+      {lowMeasurementDays.length > 0 && (
+        <div style={{ marginTop: '20px', color: 'red', fontSize: '16px' }}>
+          <strong>Not Enough Information For The Days:</strong> {lowMeasurementDays.join(', ')}
+        </div>
+      )}
+
+      {zeroMeasurementDays.length > 0 && (
+        <div style={{ marginTop: '20px', color: 'orange', fontSize: '16px' }}>
+          <strong>Zero Measurements For The Days:</strong> {zeroMeasurementDays.join(', ')}
+        </div>
+      )}
     </div>
   );
 };

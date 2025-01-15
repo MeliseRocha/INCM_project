@@ -72,7 +72,7 @@ const Register = () => {
         <input
           type="email"
           name="email"
-          placeholder="Email"
+          placeholder="Gmail Adress"
           value={formData.email}
           onChange={handleChange}
         />

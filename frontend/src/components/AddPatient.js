@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import jwtDecode from 'jwt-decode'; // Import the jwtDecode library
 import '../styles/AddPatient.css'; // Import the CSS file for styling
 
 const AddPatient = () => {
@@ -17,21 +18,35 @@ const AddPatient = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const patientData = {
-      first_name: firstName,
-      last_name: lastName,
-      date_of_birth: dateOfBirth,
-      gender,
-      email,
-      contact,
-      address,
-      medical_history: medicalHistory,
-      current_medication: currentMedications,
-      condition,
-    };
-  
+
     try {
+      // Get the token from localStorage
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('Access token is not available.');
+      }
+
+      // Decode the token to get the id
+      const decodedToken = jwtDecode(token);
+      const doctorId = decodedToken.sub.id;
+      if (!doctorId) {
+        throw new Error('Doctor ID is not available in the token.');
+      }
+
+      const patientData = {
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: dateOfBirth,
+        gender,
+        email,
+        contact,
+        address,
+        medical_history: medicalHistory,
+        current_medication: currentMedications,
+        condition,
+        doctor_id: doctorId, // Add the doctor ID to the payload
+      };
+
       const response = await fetch('http://localhost:5000/add-patient', {
         method: 'POST',
         headers: {
@@ -39,7 +54,7 @@ const AddPatient = () => {
         },
         body: JSON.stringify(patientData),
       });
-  
+
       if (response.ok) {
         const result = await response.json();
         alert('Patient added successfully!');
@@ -53,15 +68,9 @@ const AddPatient = () => {
       alert('An error occurred. Please try again later.');
     }
   };
-  
 
   const handleCancel = () => {
     navigate('/dashboard'); // Navigate back to the Dashboard
-  };
-
-  const handleSeeData = () => {
-    // Navigate to the PatientData component and pass the patient's data as state
-    navigate('/patient-data', { state: { firstName, lastName, dateOfBirth, gender, email, contact, address, medicalHistory, currentMedications, condition } });
   };
 
   return (
@@ -116,7 +125,6 @@ const AddPatient = () => {
         <div className="form-buttons">
           <button type="submit">Add Patient</button>
           <button type="button" onClick={handleCancel} className="back-button">Back</button>
-          {/* <button type="button" onClick={handleSeeData}>See Data</button> */}
         </div>
       </form>
     </div>

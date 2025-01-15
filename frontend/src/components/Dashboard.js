@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import jwtDecode from 'jwt-decode'; // Install this package
 import '../styles/Dashboard.css'; // Import the CSS file for styling
 
 const Dashboard = () => {
@@ -8,15 +9,34 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch patients from the API
     const fetchPatients = async () => {
       try {
-        const response = await fetch("http://localhost:5000/get-patients");
+        // Get the token from localStorage
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('Access token is not available.');
+        }
+
+        // Decode the token to get the id
+        const decodedToken = jwtDecode(token);
+        const doctorId = decodedToken.sub.id;
+        if (!doctorId) {
+          throw new Error('Doctor ID is not available in the token.');
+        }
+
+        // Fetch patients with the doctor ID
+        const response = await fetch(`http://localhost:5000/get-patients?doctor_id=${doctorId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+        });
         if (!response.ok) {
           throw new Error(`Error: ${response.statusText}`);
         }
         const data = await response.json();
-        setPatients(data.patients || []); // Ensure it handles cases where "patients" is undefined
+        setPatients(data.patients || []);
       } catch (err) {
         setError(err.message);
       }
@@ -25,31 +45,15 @@ const Dashboard = () => {
     fetchPatients();
   }, []);
 
-  useEffect(() => {
-    const handlePopState = (event) => {
-      // Push the same state to prevent navigating back
-      window.history.pushState(null, null, window.location.href);
-    };
-
-    // Add a new state to the history stack
-    window.history.pushState(null, null, window.location.href);
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log('User logged out');
-    navigate('/login'); // Navigate to the login page
+    localStorage.removeItem('access_token'); // Clear the token
+    navigate('/'); // Navigate to the login page
   };
 
   const handleSeeStats = (patient) => {
     navigate('/patient-data', { state: patient }); // Pass the entire patient object
   };
-  
+
 
   return (
     <div className="dashboard-container">
@@ -72,7 +76,7 @@ const Dashboard = () => {
             <p><strong>Medical History:</strong> {patient.medical_history}</p>
             <p><strong>Current Medications:</strong> {patient.current_medication}</p>
             <p><strong>Condition:</strong> {patient.condition}</p>
-            <button onClick={() => handleSeeStats(patient)} className="see-stats-button">See Stats</button>
+            <button onClick={() => handleSeeStats(patient)} className="see-stats-button">See Live</button>
           </div>
         ))}
       </div>
@@ -82,4 +86,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

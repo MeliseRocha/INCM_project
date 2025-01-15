@@ -42,7 +42,7 @@ const BeatsChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8002/sensor-data');
+        const response = await axios.get(`http://localhost:8002/sensor-data?id=${patient.id}`);
         const data = response.data;
         console.log('Fetched data:', data);
 
@@ -50,7 +50,6 @@ const BeatsChart = () => {
           // Filter observations for the current patient and BPM data
           const patientObservations = data.filter(
             entry =>
-              entry.subject.reference === `Patient/${patient.id}` &&
               entry.code.coding.some(coding => coding.code === '8867-4')
           );
 
@@ -87,7 +86,7 @@ const BeatsChart = () => {
 
     fetchData(); // Initial fetch on component mount
 
-    const intervalDuration = 3000; // Fetch new data every 3 seconds
+    const intervalDuration = 30000; // Fetch new data every 3 seconds
     const interval = setInterval(fetchData, intervalDuration);
 
     return () => clearInterval(interval);

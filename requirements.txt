@@ -7,3 +7,7 @@ sqlite3-binary
 pytz
 smtplib3
 apscheduler
+email  
+http.server  
+json  
+urllib3  

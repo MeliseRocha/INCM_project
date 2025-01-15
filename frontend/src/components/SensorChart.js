@@ -34,26 +34,19 @@ const chartReducer = (state, action) => {
 
 const SensorChart = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const patient = location.state;
 
   const [chartData, dispatch] = useReducer(chartReducer, initialState);
   const [avgSaturation, setAvgSaturation] = useState(0);
-  const [allData, setAllData] = useState({
-    labels: [],
-    data: [],
-  });
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8002/sensor-data');
-
+        const response = await axios.get(`http://localhost:8002/sensor-data?id=${patient.id}`);
         const data = response.data;
         console.log('Fetched data:', data);
 
         if (Array.isArray(data) && data.length > 0) {
-          // Filter observations for the current patient and SpO2 data
+          // Filter observations for the current patient and BPM data
           const patientObservations = data.filter(
             entry =>
               entry.subject.reference === `Patient/${patient.id}` &&
@@ -67,8 +60,6 @@ const SensorChart = () => {
 
             const newLabels = sortedObservations.map(entry => entry.effectiveDateTime);
             const newData = sortedObservations.map(entry => entry.valueQuantity.value);
-
-            setAllData({ labels: newLabels, data: newData });
 
             // Take the 8 most recent entries
             const recentLabels = newLabels.slice(-8);
@@ -93,7 +84,8 @@ const SensorChart = () => {
       }
     };
 
-    const intervalDuration = 3000;
+    fetchData();
+    const intervalDuration = 30000;
     const interval = setInterval(fetchData, intervalDuration);
 
     return () => clearInterval(interval);
