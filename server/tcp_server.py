@@ -5,6 +5,7 @@ import socketserver
 import json
 import sqlite3
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 
 class SensorDataHandler(http.server.BaseHTTPRequestHandler):
     database_name = "database.db"
@@ -31,9 +32,8 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             spo2 = data.get("SpO2")
             patient_id = data.get("id")
 
-            if bpm is not None and spo2 is not None and patient_id is not None:
-                print(f"Received Data - BPM: {bpm}, SpO2: {spo2}, ID: {patient_id}")
-
+            # Check if all necessary data is present
+            if bpm and spo2 and patient_id:
                 # Save to database
                 try:
                     if self.append_to_existing_patient(patient_id, bpm, spo2):
@@ -68,31 +68,38 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         print(f"Received GET request on {self.path}")
 
-        if self.path == '/sensor-data':
-            self.send_response(200)
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        query_params = parse_qs(parsed_path.query)
+        requested_id = query_params.get('id', [None])[0]
+
+        if path == '/sensor-data':
+            self.send_response(200 if requested_id else 400)
             self.send_cors_headers()
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
 
+            if not requested_id:
+                self.wfile.write(b'{"error": "Missing or invalid \'id\' query parameter"}')
+                return
+
             try:
-                # Retrieve all data from the database
-                data = self.get_all_data()
-                
-                # Convert the data into FHIR-compliant observations
-                fhir_data = self.generate_fhir_observations(data)
-                
-                # Send the FHIR-compliant data as the response
-                self.wfile.write(json.dumps(fhir_data, indent=2).encode())
+                data = self.get_data_by_id(requested_id)
+                if not data[0]["data"]:
+                    self.wfile.write(json.dumps(None).encode())
+                else:
+                    fhir_data = self.generate_fhir_observations(data)
+                    self.wfile.write(json.dumps(fhir_data, indent=2).encode())
             except Exception as e:
                 print(f"Error processing FHIR data: {e}")
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Error processing FHIR data")
+                self.wfile.write(b'{"error": "Error processing FHIR data"}')
         else:
             self.send_response(404)
             self.send_cors_headers()
             self.end_headers()
-            self.wfile.write(b"Not Found")
+            self.wfile.write(b'{"error": "Not Found"}')
 
     def append_to_existing_patient(self, patient_id, bpm, spo2):
         try:
@@ -101,73 +108,62 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             connection = sqlite3.connect(self.database_name)
             cursor = connection.cursor()
 
+            # Check if the patient_id exists in the patients table
+            cursor.execute('''
+                SELECT COUNT(*) FROM patients WHERE id = ?
+            ''', (patient_id,))
+            patient_exists = cursor.fetchone()[0]
+
+            if patient_exists == 0:
+                # If the patient doesn't exist, raise an error or return False
+                print(f"Patient with ID {patient_id} does not exist.")
+                connection.close()
+                return False
+
             # Get the current timestamp
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Retrieve existing data for the patient
-            cursor.execute('SELECT id FROM patients WHERE id = ?', (patient_id,))
-            validate = cursor.fetchone()
+            # Insert new measurement data into the measurements table
+            cursor.execute('''
+                INSERT INTO measurements (spo2, bpm, timestamp, id)
+                VALUES (?, ?, ?, ?)
+            ''', (spo2, bpm, timestamp, patient_id))
 
-            print(f"Query result for patient ID {patient_id}: {validate}")  # Debug print
-
-            if validate is None:
-                raise ValueError("Patient ID not found")
-            
-            cursor.execute('SELECT data FROM patients WHERE id = ?', (patient_id,))
-            result = cursor.fetchone()
-
-            existing_data = json.loads(result[0]) if result[0] else []
-
-            # Ensure existing_data is a list
-            if not isinstance(existing_data, list):
-                existing_data = []
-
-            # Append new data
-            existing_data.append({"BPM": bpm, "SpO2": spo2, "id": patient_id, "time": timestamp})
-
-            updated_data = json.dumps(existing_data)
-            cursor.execute('UPDATE patients SET data = ? WHERE id = ?', (updated_data, patient_id))
             connection.commit()
             connection.close()
             return True
 
-        except sqlite3.Error as e:
-            print(f"Database error: {e}")
+        except Exception as e:
+            print(f"Error occurred: {e}")
             return False
-        except ValueError as ve:
-            print(f"Value error: {ve}")
-            raise
-        except Exception as ex:
-            print(f"Unexpected error: {ex}")
-    def get_all_data(self):
-        connection = sqlite3.connect(self.database_name)
-        cursor = connection.cursor()
-
-        # Modify the query to select only the 'id' and 'data' columns
-        cursor.execute('SELECT id, data FROM patients')
-        rows = cursor.fetchall()
-        connection.close()
-
-        data = []
-        for row in rows:
-            patient_id = row[0]  # First column (id)
-            patient_data = row[1]  # Second column (data)
-
-            # Check if the 'data' is None or empty and handle accordingly
-            if patient_data is None:
-                patient_data = []  # Default to empty list if no data exists
-            else:
-                try:
-                    patient_data = json.loads(patient_data)  # Try to parse the JSON data
-                except json.JSONDecodeError:
-                    print(f"Invalid JSON in data for patient {patient_id}, using empty list")
-                    patient_data = []  # Use empty list if JSON decoding fails
-
-            data.append({"id": patient_id, "data": patient_data})
         
-        return data
+    def get_data_by_id(self, requested_id):
+        try:
+            connection = sqlite3.connect(self.database_name)
+            cursor = connection.cursor()
+            cursor.execute('''
+                SELECT spo2, bpm, timestamp
+                FROM measurements
+                WHERE id = ?
+            ''', (requested_id,))
+            rows = cursor.fetchall()
+            connection.close()
+
+            if not rows:
+                return [{"id": requested_id, "data": []}]
+
+            observations = [
+                {"SpO2": row[0], "BPM": row[1], "time": row[2]}
+                for row in rows
+            ]
+            return [{"id": requested_id, "data": observations}]
+        except Exception as e:
+            print(f"Database error: {e}")
+            return [{"id": requested_id, "data": []}]
 
     def generate_fhir_observations(self, database_data):
+        from copy import deepcopy
+
         spo2_template = {
             "resourceType": "Observation",
             "meta": {"profile": ["http://hl7.org/fhir/StructureDefinition/vitalsigns"]},
@@ -217,8 +213,7 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             observations = patient["data"]
 
             for observation in observations:
-                # Generate FHIR-compliant SpO2 observation
-                spo2_observation = spo2_template.copy()
+                spo2_observation = deepcopy(spo2_template)
                 spo2_observation.update({
                     "id": f"spo2-{patient_id}-{observation['time']}",
                     "subject": {"reference": f"Patient/{patient_id}"},
@@ -231,8 +226,7 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
                     }
                 })
 
-                # Generate FHIR-compliant BPM observation
-                bpm_observation = bpm_template.copy()
+                bpm_observation = deepcopy(bpm_template)
                 bpm_observation.update({
                     "id": f"bpm-{patient_id}-{observation['time']}",
                     "subject": {"reference": f"Patient/{patient_id}"},
@@ -245,12 +239,10 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
                     }
                 })
 
-                # Add observations to the list
                 fhir_observations.append(spo2_observation)
                 fhir_observations.append(bpm_observation)
 
         return fhir_observations
-
 
 
 

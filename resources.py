@@ -92,7 +92,6 @@ class Verify2FAResource(Resource):
 
         # Decode the temporary token and get the user identity data
         decoded_token = get_jwt_identity()
-        global doctor_username
         doctor_username = decoded_token.get("username")
         verification_code_hash = decoded_token.get("verification_code_hash")
 
@@ -102,7 +101,6 @@ class Verify2FAResource(Resource):
             raise TypeError("Invalid Type of Code")
 
         if check_password_hash(verification_code_hash, entered_code):
-            global doctor_id
             doctor_id = get_user_id(doctor_username)
             # If successful, generate a new access token
             access_token = create_access_token(identity={"username": doctor_username, "id": doctor_id})
@@ -112,13 +110,14 @@ class Verify2FAResource(Resource):
             # If the code is incorrect, return an error
             return make_response(jsonify({'message': 'Invalid verification code'}), 401)
         
+
 class AddPatientResource(Resource):
     def post(self):
         try:
             data = request.get_json()
             if not data:
                 return make_response(jsonify({'message': 'No input data provided'}), 400)
-            
+
             first_name = data.get('first_name')
             last_name = data.get('last_name')
             date_of_birth = data.get('date_of_birth')
@@ -129,8 +128,9 @@ class AddPatientResource(Resource):
             medical_history = data.get('medical_history')
             current_medication = data.get('current_medication')
             condition = data.get('condition')
+            doctor_id = data.get('doctor_id')
 
-            if not all([first_name, last_name, date_of_birth, gender, email, contact, address]):
+            if not all([first_name, last_name, date_of_birth, gender, email, contact, address, doctor_id]):
                 return make_response(jsonify({'message': 'Missing required fields'}), 400)
 
             # Save the patient in the database
@@ -139,8 +139,8 @@ class AddPatientResource(Resource):
                 try:
                     cursor.execute('''
                         INSERT INTO patients 
-                        (first_name, last_name, date_of_birth, gender, email, contact, address, medical_history, current_medication, condition, doctor_id, data)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                        (first_name, last_name, date_of_birth, gender, email, contact, address, medical_history, current_medication, condition, doctor_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ''', (first_name, last_name, date_of_birth, gender, email, contact, address, medical_history, current_medication, condition, doctor_id))
                     conn.commit()
                     return make_response(jsonify({'message': 'Patient added successfully'}), 201)
@@ -155,16 +155,15 @@ class AddPatientResource(Resource):
 class GetPatientsResource(Resource):
     def get(self):
         try:
-            
-            if doctor_id is None:
+            # Get the doctor ID from the query parameters
+            doctor_id = request.args.get('doctor_id')
+            if not doctor_id:
                 return {'message': 'Doctor ID is not set.'}, 400
-            
-            # Connect to the database
+
             with sqlite3.connect('database.db') as conn:
                 conn.row_factory = sqlite3.Row  # To return rows as dictionaries
                 cursor = conn.cursor()
-                
-                # Parameterized query to filter patients by doctor_id
+
                 query = '''
                     SELECT id, first_name, last_name, date_of_birth, gender, email, contact, address, 
                            medical_history, current_medication, condition
@@ -174,21 +173,132 @@ class GetPatientsResource(Resource):
                 cursor.execute(query, (doctor_id,))
                 rows = cursor.fetchall()
 
-                # Convert rows to a list of dictionaries
                 patients = [dict(row) for row in rows]
-
-                # Debug: Print patients to the console
-                print("Fetched Patients:", patients)
-
                 return {'patients': patients}, 200
         except Exception as e:
-            # Debug: Print the error to the console
-            print("Error fetching patients:", str(e))
             return {'message': str(e)}, 500
         
- 
 
-            
+
+class GetDailyData(Resource):
+    def get(self, patient_id):
+        conn = get_db_connection()
+
+        # Query to get the latest date for the patient
+        latest_day_query = '''
+            SELECT MAX(day_interval) as latest_day
+            FROM daily_data
+            WHERE id = ?
+        '''
+        latest_day_row = conn.execute(latest_day_query, (patient_id,)).fetchone()
+
+        if latest_day_row is None or latest_day_row['latest_day'] is None:
+            return jsonify({'message': 'No data found for this patient.'}), 404
+
+        latest_day = latest_day_row['latest_day']
+
+        # Query to get the saturation data for the latest day
+        data_query = '''
+            SELECT day_interval, avg_spo2
+            FROM daily_data
+            WHERE id = ? AND day_interval LIKE ?
+        '''
+        data = conn.execute(data_query, (patient_id, f'{latest_day[:10]}%')).fetchall()
+
+        # Initialize the chart data with 0s for each of the 24 hours
+        chart_data = [0] * 24  # Fill with 0 instead of None
+
+        for row in data:
+            hour = int(row['day_interval'][11:13])
+            avg_spo2 = row['avg_spo2'] if row['avg_spo2'] is not None else 0  # Ensure missing values are 0
+            chart_data[hour] = avg_spo2
+
+        conn.close()
+
+        return jsonify({
+            'latest_day': latest_day[:10],
+            'data': chart_data
+        })
+        
+
+
+class GetMonthlyData(Resource):
+    def get(self, patient_id):
+        conn = sqlite3.connect("database.db")
+        cursor = conn.cursor()
+
+        # Get the month and year from query parameters
+        try:
+            month = int(request.args.get('month'))
+            year = int(request.args.get('year'))
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid month or year"}), 400
+
+        # Calculate the number of days in the selected month
+        try:
+            start_date = datetime(year, month, 1)
+            num_days = (datetime(year, month % 12 + 1, 1) - timedelta(days=1)).day
+        except ValueError:
+            return jsonify({"error": "Invalid month or year"}), 400
+
+        # Prepare a dictionary for all days in the month
+        all_days = {
+            start_date.replace(day=day).strftime('%Y-%m-%d'): {
+                "day_of_the_month": start_date.replace(day=day).strftime('%Y-%m-%d'),
+                "total_measurements": 0,
+                "total_measurements_above_88": 0,
+                "total_hours_used": 0,
+            } for day in range(1, num_days + 1)
+        }
+
+        # Fetch data from the database for the specified month and year
+        cursor.execute("""
+            SELECT total_measurements, day_of_the_month, total_measurements_above_88, total_hours_used 
+            FROM monthly_data 
+            WHERE id = ? 
+              AND strftime('%m', day_of_the_month) = ? 
+              AND strftime('%Y', day_of_the_month) = ?
+        """, (patient_id, f"{month:02}", str(year)))
+        rows = cursor.fetchall()
+
+        low_measurement_days = []
+        zero_measurement_days = []
+
+        # Fill the all_days dictionary with fetched data
+        for row in rows:
+            total_measurements, day_of_the_month, total_measurements_above_88, total_hours_used = row
+            if day_of_the_month in all_days:
+                all_days[day_of_the_month] = {
+                    "day_of_the_month": day_of_the_month,
+                    "total_measurements": total_measurements,
+                    "total_measurements_above_88": total_measurements_above_88,
+                    "total_hours_used": total_hours_used,
+                }
+
+                # Track days with total_measurements < 1000 or total_measurements == 0
+                if total_measurements < 1000:
+                    low_measurement_days.append(day_of_the_month)
+                if total_measurements == 0:
+                    zero_measurement_days.append(day_of_the_month)
+
+        # Check for missing days (those not in the database)
+        for day in all_days:
+            if all_days[day]["total_measurements"] == 0:
+                zero_measurement_days.append(day)
+
+        conn.close()
+
+        # Return data and low measurement days
+        return jsonify({
+            "data": list(all_days.values()),
+            "low_measurement_days": low_measurement_days,
+            "zero_measurement_days": zero_measurement_days
+        })
+
+
+
+
+
 
 def send_verification_email(recipient_email, code):
     """Send an email with the verification code to the user."""
@@ -288,7 +398,11 @@ def get_user_id(username):
 
     except sqlite3.Error as e:
         return {'message': f'Database error: {str(e)}'}, 500
-
+    
+def get_db_connection():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
             
