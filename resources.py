@@ -13,7 +13,6 @@ from email.mime.text import MIMEText
 import smtplib
 from datetime import datetime
 
-
 class RegisterResource(Resource):
     def post(self):
         # Parse the incoming JSON request
