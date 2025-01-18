@@ -50,38 +50,28 @@ class RegisterResource(Resource):
             
 
 
-
-
-
 class LoginResource(Resource):
     def post(self):
         # Parse the incoming JSON request
         data = request.get_json()
         username = data.get('username')
+        password = data.get('password')
 
+        # Try logging the user in
         result = login_user(data)
 
         if result:
-            verification_code = str(random.randint(100000, 999999))
-            verification_code_hash = generate_password_hash(verification_code)
+            doctor_id = get_user_id(username)
 
-            temporary_token = create_access_token(
-                identity={
-                    "username": username,
-                    "verification_code_hash": verification_code_hash
-                },
-                expires_delta=timedelta(minutes=5)  # Token expires in 5 minutes
+            # Generate an access token for the logged-in user
+            access_token = create_access_token(
+                identity={"username": username, "id": doctor_id},
             )
-            email = get_user_email(username)
 
-            # Start a background thread to send the verification email
-            email_thread = threading.Thread(target=send_verification_email, args=(email, verification_code))
-            email_thread.start()
-
-            print(f'Email sent to {email} with verification code: {verification_code}')
-
-            return make_response(jsonify({'temporary_token': temporary_token, 'message': 'Verification code sent!'}), 200)
+            # Return the access token in the response
+            return make_response(jsonify({'access_token': access_token, 'message': 'Login successful!'}), 200)
         else:
+            # Invalid login details
             return make_response(jsonify({'message': 'Invalid username or password'}), 401)
 
 
