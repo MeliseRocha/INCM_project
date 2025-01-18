@@ -31,12 +31,13 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             bpm = data.get("BPM")
             spo2 = data.get("SpO2")
             patient_id = data.get("id")
+            sensor_time_stamp = data.get("sensor_time_stamp")
 
             # Check if all necessary data is present
             if bpm and spo2 and patient_id:
                 # Save to database
                 try:
-                    if self.append_to_existing_patient(patient_id, bpm, spo2):
+                    if self.append_to_existing_patient(patient_id, bpm, spo2, sensor_time_stamp):
                         self.send_response(200)
                         self.send_cors_headers()
                         self.end_headers()
@@ -101,7 +102,7 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"error": "Not Found"}')
 
-    def append_to_existing_patient(self, patient_id, bpm, spo2):
+    def append_to_existing_patient(self, patient_id, bpm, spo2, sensor_time_stamp):
         try:
             patient_id = int(patient_id)  # Ensure patient_id is an integer
 
@@ -125,17 +126,20 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
 
             # Insert new measurement data into the measurements table
             cursor.execute('''
-                INSERT INTO measurements (spo2, bpm, timestamp, id)
-                VALUES (?, ?, ?, ?)
-            ''', (spo2, bpm, timestamp, patient_id))
+                INSERT INTO measurements (spo2, bpm, timestamp, timestamp_esp32, id)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (spo2, bpm, timestamp, sensor_time_stamp, patient_id))
 
             connection.commit()
             connection.close()
             return True
-
-        except Exception as e:
-            print(f"Error occurred: {e}")
+        except sqlite3.Error as e:
+            print(f"Database error occurred: {e}")
             return False
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return False
+
         
     def get_data_by_id(self, requested_id):
         try:

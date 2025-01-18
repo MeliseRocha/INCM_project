@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import for navigation
 import '../styles/Form.css'; // Create a CSS file for styling
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -21,7 +24,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${apiUrl}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

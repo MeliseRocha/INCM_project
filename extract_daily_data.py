@@ -70,7 +70,6 @@ def process_measurements():
                         total_measurements = len(data['measurements'])
                         total_measurements_above_88 = data['above_88_count']
 
-                        # Calculate avg_spo2 if there are more than 2 measurements
                         if total_measurements > 40:
                             avg_spo2 = sum(data['measurements']) / total_measurements
                         else:
@@ -87,6 +86,34 @@ def process_measurements():
                             INSERT INTO daily_data (total_measurements, total_measurements_above_88, day_interval, id, avg_spo2)
                             VALUES (?, ?, ?, ?, ?)
                         ''', (None, None, day_interval, patient_id, None))
+
+        # Step 1: Get all measurements, grouped by patient id, and keep only the latest 8 for each
+        patient_measurements = {}
+
+        # Get all measurements ordered by patient_id and timestamp
+        cursor.execute('''
+            SELECT id, timestamp
+            FROM measurements
+            ORDER BY id, timestamp DESC
+        ''')
+        all_measurements = cursor.fetchall()
+
+        # Organize measurements by patient_id
+        for patient_id, timestamp in all_measurements:
+            if patient_id not in patient_measurements:
+                patient_measurements[patient_id] = []
+
+            patient_measurements[patient_id].append(timestamp)
+
+        # Step 2: For each patient, keep the latest 8 timestamps
+        for patient_id, timestamps in patient_measurements.items():
+            latest_8_timestamps = timestamps[:8]
+
+            # Delete all measurements except the latest 8
+            cursor.execute(f'''
+                DELETE FROM measurements
+                WHERE id = {patient_id} AND timestamp NOT IN ({', '.join([f"'{timestamp}'" for timestamp in latest_8_timestamps])})
+            ''')
 
         # Commit the changes
         conn.commit()

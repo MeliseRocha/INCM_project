@@ -13,6 +13,10 @@ import {
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { useLocation } from 'react-router-dom';
 
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
 
 const DailySensorChart = () => {
@@ -38,7 +42,7 @@ const DailySensorChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/daily_data/${patient.id}`);
+        const response = await fetch(`${apiUrl}/api/daily_data/${patient.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
