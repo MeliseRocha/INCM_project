@@ -34,7 +34,7 @@ Follow these steps to set up and run the project:
 1. To log in, use the following credentials:
    - **Username**: `melise`
    - **Password**: `123`
-2. Alternatively, you can register a new account directly within the application.
+2. Alternatively, you can register a new account directly within the application. Go to **Register** in the homepage to do that.
 
 ---
 
