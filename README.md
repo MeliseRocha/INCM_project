@@ -13,7 +13,8 @@ Follow these steps to set up and run the project:
    ```bash
    ./setup.sh
    ```
-
+3. If your Browser does not block pop-ups it automatically opens the application.
+   
 ## Step 3: Configure Port Visibility
 1. Navigate to the **PORTS** tab in your Codespace.
 2. Locate the following ports:
