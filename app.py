@@ -117,10 +117,10 @@ def run_flask():
     app.run(host='0.0.0.0', port=5000)
 
 def run_scheduled_task():
-    print("Scheduled task is running...")
-    process_patients()  
+    print("Scheduled task is running...") 
     process_measurements() # fills the daily_data table
     update_monthly_data() #fills monthly_data table
+    process_patients() # check patients with low saturation and measurements
 
 
 def start_scheduler():
@@ -131,9 +131,6 @@ def start_scheduler():
 if __name__ == '__main__':
     # Start the scheduler
     start_scheduler()
-    process_measurements()
-    update_monthly_data()
-
     # Start Flask app in a separate thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()

@@ -59,9 +59,8 @@ def get_doctor_email(doctor_id):
         print(f"Database error: {e}")
         return None
 
-# Function to process patient data
 def process_patients():
-    """Process patient data and send emails if average SpO2 is below 88%."""
+    """Process patient data and send emails based on monthly_data table."""
     try:
         with sqlite3.connect('database.db') as conn:
             cursor = conn.cursor()
@@ -69,57 +68,59 @@ def process_patients():
             patients = cursor.fetchall()
 
             for patient in patients:
-                id, first_name, last_name, _, _, email, _, _, _, _, _, doctor_id, data = patient
+                id, first_name, last_name, _, _, email, _, _, _, _, _, doctor_id = patient
+                test_date = datetime.now()
+                current_day = test_date.date()
+                print(test_date)
+                is_enough = True  # Assuming we will set this to True unless proven otherwise
+                
+                # Fetch monthly data for the current date
+                cursor.execute("""
+                    SELECT * FROM monthly_data 
+                    WHERE id = ? AND day_of_the_month = ?""", (id, current_day))
+                monthly_data = cursor.fetchone()
 
-                if not data:
-                    print(f"No data available for patient {first_name} {last_name}. Skipping...")
-                    continue
+                if not monthly_data:
+                    # No data found for the current day
+                    print(f"No data for patient {first_name} {last_name} on day {current_day}. Sending email with is_enough = False.")
+                    send_saturation_email(email, first_name, last_name, is_doctor=False, is_enough=False)
+                    
+                    # Send email to doctor
+                    doctor_email = get_doctor_email(doctor_id)
+                    if doctor_email:
+                        send_saturation_email(doctor_email, first_name, last_name, is_doctor=True, is_enough=False)
+                    continue  # Skip further checks for this patient
 
-                try:
-                    # Parse SpO2 data
-                    readings = json.loads(data)
-                    now = datetime.now()
-                    last_24_hours = [
-                        r for r in readings
-                        if datetime.strptime(r['time'], '%Y-%m-%d %H:%M:%S') > now - timedelta(days=1)
-                    ]
+                # Retrieve values from the monthly_data table
+                total_measurement = monthly_data[0]  # Assuming total_measurement is in 3rd column
+                total_measurements_above_88 = monthly_data[2]  # Assuming total_measurements_above_88 is in 4th column
 
-                    if not last_24_hours:
-                        print(f"No data for the last 24 hours for patient {first_name} {last_name}")
-                        continue
-
-                    # Check if there are fewer than 10,800 readings (less than 15 hours)
-                    if len(last_24_hours) < 6750:
-                        # Oxygen usage is probably not enough, so set is_enough to False
-                        is_enough = False
-                        # Send email about low oxygen usage to both patient and doctor
-                        send_saturation_email(email, first_name, last_name, is_doctor=False, is_enough=is_enough)
-
+                # Check if total_measurement is above 1200
+                if total_measurement < 1200:
+                    print(f"Patient {first_name} {last_name} has a total_measurement below 1200. Sending email with is_enough = False.")
+                    send_saturation_email(email, first_name, last_name, is_doctor=False, is_enough=False)
+                    
+                    # Send email to doctor
+                    doctor_email = get_doctor_email(doctor_id)
+                    if doctor_email:
+                        send_saturation_email(doctor_email, first_name, last_name, is_doctor=True, is_enough=False)
+                else:
+                    # If total_measurement is above 1200, check total_measurements_above_88
+                    if total_measurements_above_88 < 900:
+                        print(f"Patient {first_name} {last_name} has total_measurements_above_88 below 900. Sending email with is_enough = True.")
+                        send_saturation_email(email, first_name, last_name, is_doctor=False, is_enough=True)
+                        
                         # Send email to doctor
                         doctor_email = get_doctor_email(doctor_id)
                         if doctor_email:
-                            send_saturation_email(doctor_email, first_name, last_name, is_doctor=True, is_enough=is_enough)
+                            send_saturation_email(doctor_email, first_name, last_name, is_doctor=True, is_enough=True)
                     else:
-                        # If there are enough readings, calculate the average SpO2
-                        avg_spo2 = sum(r['SpO2'] for r in last_24_hours) / len(last_24_hours)
-                        print(f"Patient {first_name} {last_name} has an average SpO2 of {avg_spo2:.2f}%")
-
-                        # Set is_enough to True and check if the average SpO2 is below 88%
-                        is_enough = True
-                        if avg_spo2 < 88:
-                            # Send email to patient
-                            send_saturation_email(email, first_name, last_name, is_doctor=False, is_enough=is_enough)
-
-                            # Send email to doctor
-                            doctor_email = get_doctor_email(doctor_id)
-                            if doctor_email:
-                                send_saturation_email(doctor_email, first_name, last_name, is_doctor=True, is_enough=is_enough)
-
-                except (ValueError, KeyError, json.JSONDecodeError) as e:
-                    print(f"Error processing data for patient {first_name} {last_name}: {e}")
+                        # No email needs to be sent if the total_measurements_above_88 is above 900
+                        print(f"Patient {first_name} {last_name} has total_measurements_above_88 above 900. No email sent.")
 
     except sqlite3.Error as e:
         print(f"Database error: {e}")
+
 # Run the function
 if __name__ == "__main__":
     process_patients()
