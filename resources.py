@@ -277,7 +277,7 @@ class GetMonthlyData(Resource):
                 }
 
                 # Track days with total_measurements < 1000 or total_measurements == 0
-                if total_measurements < 1000:
+                if total_measurements < 1200:
                     low_measurement_days.append(day_of_the_month)
                 if total_measurements == 0:
                     zero_measurement_days.append(day_of_the_month)

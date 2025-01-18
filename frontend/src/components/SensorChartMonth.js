@@ -12,6 +12,9 @@ import {
   Legend,
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
 
@@ -31,7 +34,7 @@ const SensorChartMonth = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/monthly_data/${patientId}?month=${month + 1}&year=${year}`);
+        const response = await fetch(`${apiUrl}/api/monthly_data/${patientId}?month=${month + 1}&year=${year}`);
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
@@ -74,6 +77,28 @@ const SensorChartMonth = () => {
         color: 'rgba(200, 200, 200, 0.8)',
         font: {
           size: 18,
+        },
+      },
+      annotation: {
+        annotations: {
+          line: {
+            type: 'line',
+            yMin: 15,   // Starting point of the line on the Y axis
+            yMax: 15,   // Ending point of the line (same as yMin to make it horizontal)
+            borderColor: 'red',  // Color of the line
+            borderWidth: 2,  // Thickness of the line
+            label: {
+              content: 'Threshold 15',
+              enabled: true,
+              position: 'center',
+              font: {
+                size: 12,
+                family: 'Arial',
+                weight: 'bold',
+              },
+              color: 'red',
+            },
+          },
         },
       },
     },

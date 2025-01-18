@@ -4,6 +4,9 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port8002;
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
@@ -42,7 +45,7 @@ const BeatsChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:8002/sensor-data?id=${patient.id}`);
+        const response = await axios.get(`${apiUrl}/sensor-data?id=${patient.id}`);
         const data = response.data;
         console.log('Fetched data:', data);
 

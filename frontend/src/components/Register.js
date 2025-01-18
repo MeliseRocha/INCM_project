@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 import '../styles/Form.css'; // Import the form styling
 
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -24,7 +28,7 @@ const Register = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/register', {
+      const response = await fetch(`${apiUrl}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

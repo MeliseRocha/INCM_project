@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler  # Importing t
 from apscheduler.triggers.cron import CronTrigger  # Importing cron trigger
 from extract_daily_data import process_measurements 
 from extract_monthly_data import update_monthly_data
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)  
@@ -20,7 +21,7 @@ api = Api(app)
 app.config['JWT_SECRET_KEY'] = 'your_secret_key'  # Set a secret key for JWT
 jwt = JWTManager(app)
 
-import sqlite3
+
 
 def init_db():
     with sqlite3.connect('database.db') as conn:
@@ -63,6 +64,7 @@ def init_db():
                 spo2 REAL,
                 bpm REAL,
                 timestamp DATETIME,
+                timestamp_esp32,
                 id INTEGER NOT NULL,
                 FOREIGN KEY (id) REFERENCES patients (id)
             )
@@ -117,22 +119,24 @@ def run_flask():
 def run_scheduled_task():
     print("Scheduled task is running...")
     process_patients()  
+    process_measurements() # fills the daily_data table
+    update_monthly_data() #fills monthly_data table
 
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_scheduled_task, CronTrigger(hour=17, minute=25))
+    scheduler.add_job(run_scheduled_task, CronTrigger(hour=00, minute=00))
     scheduler.start()
 
 if __name__ == '__main__':
     # Start the scheduler
     start_scheduler()
+    process_measurements()
+    update_monthly_data()
 
     # Start Flask app in a separate thread
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-    process_measurements()
-    update_monthly_data()
 
     # Start TCP server in a separate thread
     tcp_thread = threading.Thread(target=run_tcp_server, daemon=True)

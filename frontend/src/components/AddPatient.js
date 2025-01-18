@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import jwtDecode from 'jwt-decode'; // Import the jwtDecode library
 import '../styles/AddPatient.css'; // Import the CSS file for styling
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
 
 const AddPatient = () => {
   const [firstName, setFirstName] = useState('');
@@ -47,7 +50,7 @@ const AddPatient = () => {
         doctor_id: doctorId, // Add the doctor ID to the payload
       };
 
-      const response = await fetch('http://localhost:5000/add-patient', {
+      const response = await fetch(`${apiUrl}/add-patient`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

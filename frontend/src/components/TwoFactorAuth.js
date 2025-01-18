@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Form.css';
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
 
 const TwoFactorAuth = () => {
   const [authCode, setAuthCode] = useState('');
@@ -10,7 +13,7 @@ const TwoFactorAuth = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/verify-2fa', {
+      const response = await fetch(`${apiUrl}/verify-2fa`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

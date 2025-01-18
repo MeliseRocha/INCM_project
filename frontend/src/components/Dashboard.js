@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import jwtDecode from 'jwt-decode'; // Install this package
 import '../styles/Dashboard.css'; // Import the CSS file for styling
+import { Routes } from './Routes'
+
+const apiUrl = Routes.port5000;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -25,7 +28,7 @@ const Dashboard = () => {
         }
 
         // Fetch patients with the doctor ID
-        const response = await fetch(`http://localhost:5000/get-patients?doctor_id=${doctorId}`, {
+        const response = await fetch(`${apiUrl}/get-patients?doctor_id=${doctorId}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
