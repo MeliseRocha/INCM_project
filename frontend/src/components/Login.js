@@ -34,14 +34,14 @@ const Login = () => {
       console.log('Login response:', data);
 
       if (response.ok) {
-        console.log('Login successful, storing temporary token');
-        // Store the temporary token in localStorage
-        localStorage.setItem('temporary_token', data.temporary_token);
+        console.log('Login successful, storing access token');
+        // Store the access token in localStorage
+        localStorage.setItem('access_token', data.access_token);
 
-        // Redirect to the Two-Factor Authentication page
-        navigate('/2fa');
+        // Redirect to the dashboard
+        navigate('/dashboard');
       } else {
-        alert(data.message);
+        alert(data.message || 'Login failed.');
       }
     } catch (error) {
       console.error('Error:', error);
