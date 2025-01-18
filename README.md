@@ -36,9 +36,5 @@ Follow these steps to set up and run the project:
    - **Password**: `123`
 2. Alternatively, you can register a new account directly within the application. Go to **Register** in the homepage to do that.
 
----
 
-### Notes
-- Make sure all dependencies are properly installed during the setup script execution.
-- If you encounter any issues, refer to the troubleshooting section in the project documentation or contact the project maintainer.
 
