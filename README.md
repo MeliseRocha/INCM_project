@@ -31,7 +31,7 @@ Follow these steps to set up and run the project:
 3. This will open the application in your browser.
 
 ## Step 5: Login or Register
-1. To log in, use the following credentials:
+1. To log in and see some data for patients, use the following credentials:
    - **Username**: `melise`
    - **Password**: `123`
 2. Alternatively, you can register a new account directly within the application. Go to **Register** in the homepage to do that.
