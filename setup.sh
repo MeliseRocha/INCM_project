@@ -91,10 +91,6 @@ python3 app.py &  # Run the app in the background
 # Step 3: Go to the frontend directory and install react-scripts
 echo "Navigating to frontend/ and installing react-scripts..."
 cd frontend/
-npm install react-scripts --save
-
-# Step 4: Start the React development server
-echo "Starting React development server..."
 npm start
 
 echo "};" >> $ROUTES_JS_PATH
