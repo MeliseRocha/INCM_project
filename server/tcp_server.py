@@ -1,4 +1,3 @@
-# TO BE TESTED I DONT KNOW IF IT WORKS
 
 import http.server
 import socketserver
@@ -6,6 +5,7 @@ import json
 import sqlite3
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
+import pytz
 
 class SensorDataHandler(http.server.BaseHTTPRequestHandler):
     database_name = "database.db"
@@ -101,7 +101,6 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             self.send_cors_headers()
             self.end_headers()
             self.wfile.write(b'{"error": "Not Found"}')
-
     def append_to_existing_patient(self, patient_id, bpm, spo2, sensor_time_stamp):
         try:
             patient_id = int(patient_id)  # Ensure patient_id is an integer
@@ -121,8 +120,9 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
                 connection.close()
                 return False
 
-            # Get the current timestamp
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Get the current timestamp in Berlin timezone
+            berlin_tz = pytz.timezone("Europe/Berlin")
+            timestamp = datetime.now(berlin_tz).strftime("%Y-%m-%d %H:%M:%S")
 
             # Insert new measurement data into the measurements table
             cursor.execute('''
@@ -135,9 +135,6 @@ class SensorDataHandler(http.server.BaseHTTPRequestHandler):
             return True
         except sqlite3.Error as e:
             print(f"Database error occurred: {e}")
-            return False
-        except Exception as e:
-            print(f"An error occurred: {e}")
             return False
 
         
