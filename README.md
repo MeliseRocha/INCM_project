@@ -19,7 +19,7 @@ Follow these steps to set up and run the project:
    ```bash
    ./setup.sh
    ```
-3. If your Browser does not block pop-ups it automatically opens the application.
+3. If your Browser does not block pop-ups it automatically opens the application. BUT REMEMBER TO CHANGE THE PORTS TO PUBLIC AFTER IT POPS-UP.
    
 ## Step 3: Configure Port Visibility
 1. Navigate to the **PORTS** tab in your Codespace.
