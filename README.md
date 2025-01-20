@@ -5,7 +5,7 @@
 **Name**: STACY- Sensor-based Telemetry and Analytics for Connected Health sYstems
 
 **Members**: Anastasiia Bulatkina, Lucas Barros, Melise Rocha, Jayson Dabu
-# Project Setup Guide
+# Project Setup Guide On Codespace
 
 Follow these steps to set up and run the project:
 
@@ -43,5 +43,33 @@ Follow these steps to set up and run the project:
    - **Password**: `123`
 2. Alternatively, you can register a new account directly within the application. Go to **Register** in the homepage to do that.
 
+
+# Project Setup Guide On Local
+
+## Step 1: Clone
+1. Clone the project on your local machine and ensure the ports **3002, 5001, 8002** are free!
+
+## Step 2: Run the Setup Script
+1. Open the terminal in your prefered IDE.
+2. Execute the setup script by typing:
+   ```bash
+   ./setup_local.sh
+   ```
+3. If your Browser does not block pop-ups it automatically opens the application.
+
+## Step 3: Access the Application
+
+1. Access your local host
+
+  ```bash
+   https://localhost:3002
+
+   ```
+
+## Step 4: Login or Register
+1. To log in and see some data for patients, use the following credentials:
+   - **Username**: `melise`
+   - **Password**: `123`
+2. Alternatively, you can register a new account directly within the application. Go to **Register** in the homepage to do that.
 
 
