@@ -2,8 +2,8 @@
 
 # Group
 
-Name: STACY- Sensor-based Telemetry and Analytics for Connected Health sYstems
-Members: Anastasiia Bulatkina, Lucas Barros, Melise Rocha, Jayson Dabu
+**Name**: STACY- Sensor-based Telemetry and Analytics for Connected Health sYstems
+**Members**: Anastasiia Bulatkina, Lucas Barros, Melise Rocha, Jayson Dabu
 # Project Setup Guide
 
 Follow these steps to set up and run the project:
